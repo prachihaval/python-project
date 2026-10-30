@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Browse Vehicles{% endblock %}
+
+{% block content %}
+<h3 class="mb-3">Browse Vehicles</h3>
+
+<!-- Filter Bar -->
+<div class="card mb-4 shadow-sm">
+  <div class="card-body">
+    <form method="GET" action="{{ url_for('vehicles') }}" class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Type</label>
+        <select name="type" class="form-select form-select-sm">
+          <option value="">All Types</option>
+          {% for t in ['car','suv','bike','van'] %}
+          <option value="{{ t }}" {% if filters.type == t %}selected{% endif %}>{{ t|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Fuel</label>
+        <select name="fuel" class="form-select form-select-sm">
+          <option value="">All Fuels</option>
+          {% for f in ['petrol','diesel','electric','cng'] %}
+          <option value="{{ f }}" {% if filters.fuel == f %}selected{% endif %}>{{ f|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Min Seats</label>
+        <input type="number" name="seats" class="form-control form-control-sm"
+               placeholder="e.g. 5" value="{{ filters.seats }}" min="1" max="20">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small fw-semibold">Max Price/Day (Rs.)</label>
+        <input type="number" name="max_price" class="form-control form-control-sm"
+               placeholder="e.g. 3000" value="{{ filters.max_price }}" min="0">
+      </div>
+      <div class="col-md-2 d-flex align-items-center pt-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" name="available_only" value="1"
+                 id="availCheck" {% if filters.available_only %}checked{% endif %}>
+          <label class="form-check-label small" for="availCheck">Available only</label>
+        </div>
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-dark btn-sm flex-fill">Filter</button>
+        <a href="{{ url_for('vehicles') }}" class="btn btn-outline-secondary btn-sm">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Vehicle Cards -->
+{% if vehicles %}
+<div class="row g-4">
+  {% for v in vehicles %}
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm vehicle-card">
+      <div class="vehicle-img-wrap bg-light d-flex align-items-center justify-content-center">
+        {% if v.photo_path %}
+          <img src="{{ url_for('static', filename='images/' + v.photo_path) }}"
+               class="card-img-top vehicle-img" alt="{{ v.brand }} {{ v.model }}">
+        {% else %}
+          <div class="vehicle-placeholder text-muted text-center py-4">
+            {% if v.type == 'bike' %}<span class="display-5">🏍️</span>
+            {% elif v.type == 'van' %}<span class="display-5">🚐</span>
+            {% elif v.type == 'suv' %}<span class="display-5">🚙</span>
+            {% else %}<span class="display-5">🚗</span>{% endif %}
+          </div>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-1">
+          <h5 class="card-title mb-0">{{ v.brand }} {{ v.model }}</h5>
+          <span class="badge
+            {% if v.availability_status == 'available' %}bg-success
+            {% elif v.availability_status == 'rented' %}bg-warning text-dark
+            {% else %}bg-secondary{% endif %}">
+            {{ v.availability_status|replace('_',' ')|title }}
+          </span>
+        </div>
+        <p class="text-muted small mb-2">
+          {{ v.type|title }} &bull; {{ v.fuel_type|title }} &bull; {{ v.seating_capacity }} seats
+        </p>
+        <div class="mb-3">
+          <span class="fs-5 fw-bold text-dark">Rs. {{ "%.0f"|format(v.price_per_day) }}</span>
+          <span class="text-muted small">/day</span>
+          &nbsp;
+          <span class="text-muted small">Rs. {{ "%.0f"|format(v.price_per_hour) }}/hr</span>
+        </div>
+        <div class="d-flex gap-2">
+          <a href="{{ url_for('vehicle_detail', vid=v.id) }}"
+             class="btn btn-outline-dark btn-sm">Details</a>
+          {% if session.role == 'customer' and v.availability_status == 'available' %}
+          <a href="{{ url_for('book_vehicle', vid=v.id) }}"
+             class="btn btn-dark btn-sm">Book Now</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+  No vehicles match your filters. <a href="{{ url_for('vehicles') }}">Clear all filters</a>
+</div>
+{% endif %}
+{% endblock %}
